@@ -2,13 +2,13 @@ const Author = require("../models/Author");
 
 exports.createAuthor = async (req, res) => {
   try {
-    let profilePic;
+    let profileImage;
     if (req.awsImages) {
-      profilePic = req.awsImages?.[0];
+      profileImage = req.awsImages?.[0];
     }
 
     Author.create(
-      profilePic ? { ...req.body, profilePic } : req.body,
+      profileImage ? { ...req.body, profileImage } : req.body,
       (err, doc) => {
         if (err)
           return res.status(400).json({
@@ -86,14 +86,14 @@ exports.editAuthor = async (req, res) => {
   try {
     const { id } = req.body;
 
-    let profilePic;
+    let profileImage;
     if (req.awsImages) {
-      profilePic = req.awsImages?.[0];
+      profileImage = req.awsImages?.[0];
     }
 
     Author.findByIdAndUpdate(
       id,
-      profilePic ? { ...req.body, profilePic } : req.body,
+      profileImage ? { ...req.body, profileImage } : req.body,
       { new: true },
       (err, doc) => {
         res.status(200).json({
