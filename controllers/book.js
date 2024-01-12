@@ -1,60 +1,33 @@
 const Book = require("../models/Book");
 const Author = require("../models/Author");
 
+
 exports.createBook = async (req, res) => {
   try {
 
-    console.log("Book Images : ",req.body.bookImages)
+    // need to be implement auther part
+    // const author = await Author.findById(req.body.author);
 
-    // let images = [];
-    // if (req.awsImages?.length > 0) {
-    //   await req.awsImages.map((image) => {
-    //     images.push(image);
+
+    // if (!author) {
+    //   return res.status(404).json({
+    //     Success: true,
+    //     message: " Author not found",
     //   });
     // }
-    let payload = {
+
+
+       const payload = {
       ...req.body,
-      //frontCover: images?.[0],
-      // backCover: images?.[1],
-      frontCover: req.body.frontCover,
-      backCover: req.body.backCover,
-      bookUrl: req.body.bookUrl,
-      textBook: req.body.textBook,
-      epubBook: req.body.epubBook,
-      bookMp3UrlFemale: req.body.bookMp3UrlFemale,
-      bookMp3UrlMale: req.body.bookMp3UrlMale,
-      previousSeriesLinks: req.body.previousSeriesLinks
-        ? JSON.parse(req.body.previousSeriesLinks)
-        : [],
-      subCategory: JSON.parse(req.body.subCategory),
-      libraries: JSON.parse(req.body.libraries),
-      //bookImages: images.slice(2, images.length),
-      //bookImages: JSON.parse(req.body.bookImages),
-      bookImages: req.body.bookImages.slice(0, req.body.bookImages.length),
-      fileListEpubChapter: req.body.fileListEpubChapter.slice(0, req.body.fileListEpubChapter.length),
-      fileListTxtChapter: req.body.fileListTxtChapter.slice(0, req.body.fileListTxtChapter.length),
+    } ;
 
-      chapterAudioMale: req.body.chapterAudioMale.slice(0, req.body.chapterAudioMale.length),
-      chapterAudioFemale: req.body.chapterAudioFemale.slice(0, req.body.chapterAudioFemale.length),
-      chapterAudioDramatic: req.body.chapterAudioDramatic.slice(0, req.body.chapterAudioDramatic.length),
+    const createdBook = await Book.create(payload);
 
-      
-    };
-
-
-    Book.create(payload, (err, doc) => {
-      if (err)
-        return res.status(400).json({
-          message: err,
-        });
-      Author.findById(req.body.author).then(async (author) => {
-        author.books.push(doc._id);
-        author.save();
-        res.status(200).json({
-          message: "Book Added Successfully",
-        });
-      });
+    res.status(201).json({
+      Success: true,
+      message: "Book Added Successfully",
     });
+
   } catch (err) {
     res.status(500).json({
       message: err.toString(),
@@ -190,9 +163,9 @@ exports.editBook = async (req, res) => {
   try {
     //const { id, frontUpdated, backUpdated, existingImages } = req.body;
     const { id, frontCover, backCover, bookImages } = req.body;
-    console.log("Id",id)
-    console.log("Aws",req.awsImages)
-    
+    console.log("Id", id);
+    console.log("Aws", req.awsImages);
+
     //const { id, frontUpdated, backUpdated } = req.body;
 
     // let existingImages;
