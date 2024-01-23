@@ -14,4 +14,7 @@ router.post("/create",userAuth, uploadImages, authorController.createAuthor);
 router.post("/update",userAuth, uploadImages, authorController.editAuthor);
 router.post("/search",userAuth, authorController.searchAuthors);
 
+// create authers
+router.post("/create-authers",userAuth,authorController.createAuthers);
+
 module.exports = router;

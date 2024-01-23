@@ -1,6 +1,18 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
+
+// Define the subcategory schema
+const subcategorySchema = new Schema({
+  subcategory:{type:String}
+});
+
+// Define the category schema
+const categorySchema = new Schema({
+  type:{type:String},
+  subcategories: [subcategorySchema] // Array of subcategory objects
+});
+
 const bookSchema = new Schema({
   name: String,
   author: {
@@ -17,14 +29,9 @@ const bookSchema = new Schema({
   access_type: String,
   description: String,
   physicalBookStores: Array,
-  category: {
-    type: Schema.Types.ObjectId,
-    ref: "category",
-  },
-  subCategory: [{
-    type: Schema.Types.ObjectId,
-    ref: "category",
-  }],
+  
+  categories: [categorySchema], // Array of category objects
+
   previousSeries: {
     type: Boolean,
     default: false,

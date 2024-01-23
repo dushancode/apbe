@@ -2,13 +2,13 @@ const Author = require("../models/Author");
 
 exports.createAuthor = async (req, res) => {
   try {
-    let profilePic;
+    let profileImage;
     if (req.awsImages) {
-      profilePic = req.awsImages?.[0];
+      profileImage = req.awsImages?.[0];
     }
 
     Author.create(
-      profilePic ? { ...req.body, profilePic } : req.body,
+      profileImage ? { ...req.body, profileImage } : req.body,
       (err, doc) => {
         if (err)
           return res.status(400).json({
@@ -25,6 +25,37 @@ exports.createAuthor = async (req, res) => {
     });
   }
 };
+
+exports.createAuthers= async (req,res)=>{
+
+  try {
+    const authers = req.body;
+
+    if(!authers){
+      res.status(500).json("Authers are unavailable");
+    }
+    authers?.map((auther)=>{
+      Author.create(
+        auther,
+        (err, doc) => {
+          if (err)
+            return res.status(400).json({
+              message: err,
+            });
+        }
+      );
+    })
+    return res.status(200).json({
+      message: "Authors are Added Successfully",
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: err.toString(),
+    });
+  }
+ 
+}
 
 exports.getAll = async (req, res) => {
   try {
@@ -86,14 +117,14 @@ exports.editAuthor = async (req, res) => {
   try {
     const { id } = req.body;
 
-    let profilePic;
+    let profileImage;
     if (req.awsImages) {
-      profilePic = req.awsImages?.[0];
+      profileImage = req.awsImages?.[0];
     }
 
     Author.findByIdAndUpdate(
       id,
-      profilePic ? { ...req.body, profilePic } : req.body,
+      profileImage ? { ...req.body, profileImage } : req.body,
       { new: true },
       (err, doc) => {
         res.status(200).json({
