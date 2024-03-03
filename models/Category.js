@@ -2,18 +2,17 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const CategoriesSchema = new Schema({
-  name: String,
-  material: {
-    type: Schema.Types.ObjectId,
-    ref: "material",
-  },
-  mainCat: {
-    type: Schema.Types.ObjectId,
-    ref: "category",
-  },
-  categoryType: {
+  name: {
     type: String,
-    default: "main",
+    required: true
+  },
+  language: {
+    type: String,
+    required: true
+  },
+  is_active: {
+    type: Boolean,
+    default: true
   },
   CreatedAt: {
     type: Date,

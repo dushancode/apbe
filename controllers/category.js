@@ -1,133 +1,271 @@
 const Category = require("../models/Category");
+const CategorySub = require("../models/CategorySub");
 
-exports.createCategory = async (req, res) => {
+// category ////////////////////////////////////////////
+exports.storeCategory = async (req, res) => { //storing
   try {
-    Category.findOne({ name: req.body.name }).then((categories) => {
-      if (categories) {
-        return res.status(400).json({
-          message: "Cannot add another category with same name",
-        });
-      } else {
-        Category.create(req.body, (err, doc) => {
-          if (err)
-            return res.status(400).json({
-              message: err,
-            });
-          return res.status(200).json({
-            message: req.body.mainCat
-              ? "Sub Category Created"
-              : "Category Created",
-          });
-        });
+    const { name, language } = req.body;
+    const categoryExists = await Category.findOne({ name });
+    if (categoryExists) {
+      return res.status(400).json({
+        message: "Cannot add another category with same name",
+      });
+    }
+    const response = await Category.create(req.body);
+    if (response) {
+      return res.status(200).json({
+        message: "Category Created",
+      });
+    } else {
+      return res.status(400).json({
+        message: "Category Creation failed.",
+      });
+    }
+  } catch (err) {
+    res.status(500).json({
+      message: err.toString(),
+    });
+  }
+};
+
+exports.getAllCategories = async (req, res) => { //retrieving all data
+  try {
+    const categories = await Category.find({ is_active: true });
+    if (categories.length === 0) {
+      return res.status(400).json({
+        message: "No categories found"
+      });
+    }
+    return res.status(200).json(categories);
+  } catch (err) {
+    res.status(500).json({
+      message: err.toString(),
+    });
+  }
+};
+
+// exports.getFilteredCategories = async (req, res) => { //retrieving filtered data by name
+//   try {
+//     const categories = await Category.find({ name: { $regex: req.body.name, $options: "i" } });
+//     if (categories.length === 0) {
+//       return res.status(400).json({
+//         message: "No categories found"
+//       });
+//     }
+//     return res.status(200).json(categories);
+//   } catch (err) {
+//     res.status(500).json({
+//       message: err.toString(),
+//     });
+//   }
+// };
+
+exports.getSearchedCategories = async (req, res) => { //retrieving search-filtered data by name or language
+  try {
+    const { name, language } = req.query;
+    const query = { is_active: true };
+    if (name) {
+      query.name = { $regex: name, $options: 'i' };
+    }
+    if (language) {
+      query.language = { $regex: language, $options: 'i' };
+    }
+    const categories = await Category.find(query);
+    if (categories.length === 0) {
+      return res.status(400).json({
+        message: "No categories found"
+      });
+    }
+    return res.status(200).json(categories);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+
+exports.updateCategory = async (req, res) => { //updating category
+  try {
+    const categoryId = req.params.id;
+    const { name, language } = req.body;
+    if (!categoryId) {
+      return res.status(400).json({
+        message: "Category ID not found"
+      });
+    }
+    const categoryExists = await Category.findOne({ name });
+    if (categoryExists && categoryExists._id != categoryId) {
+      return res.status(400).json({
+        message: "Category name already exists"
+      });
+    }
+    const response = await Category.findByIdAndUpdate(categoryId, { name, language }, { new: true });
+    if (!response) {
+      return res.status(400).json({
+        message: "Category not found"
+      });
+    }
+    return res.status(200).json(
+      {
+        message: "Category updated",
       }
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: err.toString(),
+    );
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal Server Error"
     });
   }
 };
 
-exports.addSubCategoryToCategory = async (req, res) => {
+exports.deleteCategory = async (req, res) => { //disabling category and relevant sub categories
   try {
-    const { id, subCategories } = req.body;
-    //subcategroies is the array of names of subcateogries
-    Category.findById(id).then(async (category) => {
-      await subCategories.map((sub) => {
-        let payload = {
-          name: sub,
-          mainCat: id,
-          categoryType: "sub",
-        };
-        Category.create(payload);
+    const categoryId = req.params.id;
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+    category.is_active = false;
+    await category.save();
+    const subcategories = await CategorySub.find({ parentCategory: categoryId });
+    for (const subcategory of subcategories) {
+      subcategory.is_active = false;
+      await subcategory.save();
+    }
+    return res.status(200).json(
+      { message: "Category deleted" }
+    );
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// sub category ///////////////////////////////////////////////////////
+exports.storeSubCategory = async (req, res) => { //storing data
+  try {
+    const { name, parentCategory } = req.body;
+    const categoryExists = await Category.findById(parentCategory);
+    if (!categoryExists) {
+      return res.status(400).json({
+        message: "Parent category does not exist",
       });
-      res.status(200).json({
-        message: "Sub-Category Added",
+    }
+    const subcategoryExists = await CategorySub.findOne({ name });
+    if (subcategoryExists) {
+      return res.status(400).json({
+        message: "Cannot add another subcategory with the same name",
       });
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: err.toString(),
-    });
-  }
-};
-
-exports.getAll = async (req, res) => {
-  try {
-    Category.find({})
-      .populate("material mainCat")
-      .populate({
-        path: "mainCat",
-        populate: {
-          path: "material",
-          // model: 'Category'
-        },
-      })
-      .then((category) => {
-        res.status(200).json(category);
+    }
+    const response = await CategorySub.create(req.body);
+    if (response) {
+      return res.status(200).json({
+        message: "Sub Category Created",
       });
-  } catch (err) {
-    res.status(500).json({
-      message: err.toString(),
-    });
-  }
-};
-
-exports.editCategory = async (req, res) => {
-  try {
-    const { id } = req.body;
-
-    Category.findByIdAndUpdate(id, req.body, { new: true }, (err, doc) => {
-      res.status(200).json({
-        message: "Category Updated.",
+    } else {
+      return res.status(400).json({
+        message: "Sub Category creation failed.",
       });
-    });
+    }
   } catch (err) {
+    console.error(err);
     res.status(500).json({
-      message: err.toString(),
+      message: "Internal Server Error",
     });
   }
 };
 
-exports.getSubcategories = async (req, res) => {
+exports.getAllSubCategories = async (req, res) => { //retrieving all data
   try {
-    Category.find({ mainCat: req.params.id }).then((category) => {
-      res.status(200).json(category);
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: err.toString(),
-    });
-  }
-};
-exports.getAllCategories = async (req, res) => {
-  try {
-    Category.find({ categoryType: "main" }).then((category) => {
-      res.status(200).json(category);
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: err.toString(),
-    });
-  }
-};
-
-exports.search = async (req, res) => {
-  try {
-    Category.find({ name: { $regex: req.body.name, $options: "i" } })
-      .populate("material mainCat")
-      .populate({
-        path: "mainCat",
-        populate: {
-          path: "material",
-        },
-      })
-      .then((categories) => {
-        res.status(200).json(categories);
+    const subCategories = await CategorySub.find({ is_active: true });
+    if (subCategories.length === 0) {
+      return res.status(400).json({
+        message: "No sub categories found"
       });
+    }
+    return res.status(200).json(subCategories);
   } catch (err) {
     res.status(500).json({
       message: err.toString(),
     });
+  }
+};
+
+exports.getSearchedSubCategories = async (req, res) => { //retrieving search-filtered data by name or category
+  try {
+    const { name, category } = req.query;
+    const query = { is_active: true };
+    if (name) {
+      query.name = { $regex: name, $options: 'i' };
+    }
+    if (category) {
+      query.parentCategory = category;
+    }
+    const subCategories = await CategorySub.find(query);
+    if (subCategories.length === 0) {
+      return res.status(400).json({
+        message: "No sub categories found"
+      });
+    }
+    return res.status(200).json(subCategories);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+
+exports.updateSubCategory = async (req, res) => { //updating sub category
+  try {
+    const subCategoryId = req.params.id;
+    const { name, parentCategory } = req.body;
+    if (!subCategoryId) {
+      return res.status(400).json({
+        message: "Sub Category ID not found"
+      });
+    }
+    const subCategoryExists = await CategorySub.findOne({ name, parentCategory });
+    const category = await Category.findById(parentCategory);
+    if (subCategoryExists && subCategoryExists._id != subCategoryId) {
+      return res.status(400).json({
+        message: `Sub category already exists for ${category.name} category`
+      });
+    }
+    const response = await CategorySub.findByIdAndUpdate(subCategoryId, { name, parentCategory }, { new: true });
+    if (!response) {
+      return res.status(400).json({
+        message: "Sub category not found"
+      });
+    }
+    return res.status(200).json(
+      {
+        message: "Sub category updated",
+      }
+    );
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};
+
+exports.deleteSubCategory = async (req, res) => { //disabling sub categories
+  try {
+    const subCategoryId = req.params.id;
+    const subCategory = await CategorySub.findById(subCategoryId);
+    if (!subCategory) {
+      return res.status(404).json({ message: "Sub category not found" });
+    }
+    subCategory.is_active = false;
+    await subCategory.save();
+    return res.status(200).json(
+      { message: "Sub category deleted" }
+    );
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };
